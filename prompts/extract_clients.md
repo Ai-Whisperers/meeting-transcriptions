@@ -42,17 +42,18 @@ Return ONLY valid JSON:
 ## Confidence scoring (REQUIRED)
 
 For each item, add `confidence` (0.0-1.0) and `source_quote`:
-- 0.9-1.0: speaker explicitly described the client's situation
-- 0.7-0.9: implied, inference is solid
+- 0.9-1.0: speaker explicitly described a SPECIFIC NAMED client's situation
+- 0.7-0.9: implied, inference is solid (named client present)
 - 0.4-0.7: speculative
-- <0.4: DO NOT include
+- <0.4: **DO NOT include** — particularly when no client name is given
 
 ## Common pitfalls
 
-1. **No client named** — if the speaker is talking about generic clients (no name, no company), it's still a valid insight (use `client: "unknown"` or `"multiple"`)
+1. **No client named** — if the speaker is talking about generic companies or abstract concepts (no name, no actual customer), it's **NOT** a client insight. Skip it entirely or set category=`general` with confidence <0.4. Don't invent client insights from casual reflections.
 2. **Confusing with internal complaints** — pain points are the CLIENT's pain, not ours
 3. **Missed opportunities** — success stories and upsell signals are valuable; don't overlook them
 4. **Forgetting severity** — a "minor UX issue" is severity=low; "they might cancel next quarter" is severity=critical
+5. **Phantom clients** — if the speaker says "in a bigger company" or "in general", there is NO specific client. Skip.
 
 ## Examples
 

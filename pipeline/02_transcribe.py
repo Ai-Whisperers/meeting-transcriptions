@@ -98,7 +98,8 @@ def write_transcript_outputs(meeting_dir: Path, result: dict, speakers: list[dic
     """Write transcript.json, transcript.txt, transcript.vtt. Returns updated meta fields."""
     segments = normalize_whisperx_segments(result)
     duration = max((s["end_time"] for s in segments), default=0.0)
-    language = result.get("language", "es")
+    # Default to "unknown" — never assume a language; downstream stage 3 needs the actual one
+    language = result.get("language") or "unknown"
 
     # transcript.json — full WhisperX shape + our schema fields
     transcript_json = {
@@ -194,10 +195,14 @@ def transcribe_one(meeting_dir: Path, *, force: bool = False) -> dict:
 
     audio_data = whisperx.load_audio(str(audio))
     result = model.transcribe(audio_data, batch_size=config.WHISPER_BATCH_SIZE, language=None)
+    # Capture the language Whisper detected BEFORE alignment overwrites it
+    detected_language = result.get("language", "unknown")
 
     # Align (gives word-level timestamps)
-    align_model, align_metadata = whisperx.load_align_model(language_code=result["language"], device=device)
+    align_model, align_metadata = whisperx.load_align_model(language_code=detected_language, device=device)
     result = whisperx.align(result["segments"], align_model, align_metadata, audio_data, device)
+    # Preserve the detected language (align() may mutate result["language"] oddly)
+    result["language"] = detected_language
 
     # Diarize (pyannote). Requires HF_TOKEN env var with pyannote access.
     hf_token = os.environ.get("HF_TOKEN")
@@ -210,7 +215,6 @@ def transcribe_one(meeting_dir: Path, *, force: bool = False) -> dict:
     else:
         print("[warn] HF_TOKEN not set; skipping diarization. Speakers will all be SPEAKER_UNKNOWN.", file=sys.stderr)
 
-    # Build outputs and update meta
     segments = normalize_whisperx_segments(result)
     speakers = compute_speaker_stats(segments)
     fields = write_transcript_outputs(meeting_dir, result, speakers)

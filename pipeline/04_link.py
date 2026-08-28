@@ -74,9 +74,46 @@ def load_all_meetings() -> list[dict]:
             continue
         meta = json.loads(meta_path.read_text())
         ext = json.loads(ext_path.read_text())
+        # Confidence filter: drop low-quality items before indexing.
+        # The LLM sometimes extracts at confidence 0.4 for phantom clients / vague
+        # topics; we filter those out here so they don't pollute the indexes.
+        ext = filter_low_confidence(ext)
         meetings.append({"id": mdir.name, "dir": mdir, "meta": meta, "extraction": ext, "date": meta["date"]})
     meetings.sort(key=lambda m: m["date"])
     return meetings
+
+
+# Minimum confidence for an item to appear in indexes/summaries.
+# Below this, the item is too speculative to be useful.
+CONF_THRESHOLDS = {
+    "clients": 0.5,   # Phantom-client hallucination guard (zai-glm-4-flash tendency)
+    "ideas": 0.4,
+    "features": 0.5,
+    "projects": 0.5,
+    "quotes": 0.5,
+    "daily_tasks": 0.4,
+    "weekly_tasks": 0.4,
+    "monthly_okrs": 0.5,
+    "decisions": 0.5,
+    "topics": 0.0,    # topics can be vague by nature — keep all
+}
+
+
+def filter_low_confidence(ext: dict) -> dict:
+    """Drop items below the per-section confidence threshold."""
+    out = dict(ext)
+    for section, threshold in CONF_THRESHOLDS.items():
+        items = out.get(section, [])
+        if not items or threshold == 0:
+            continue
+        kept = []
+        for item in items:
+            conf = item.get("confidence")
+            # Items without confidence field are kept (older format)
+            if conf is None or conf >= threshold:
+                kept.append(item)
+        out[section] = kept
+    return out
 
 
 def update_links_for_meetings(meetings: list[dict]) -> int:

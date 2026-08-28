@@ -79,6 +79,12 @@ def render_summary(meeting_id: str, meta: dict, ext: dict | None) -> str:
         lines.append("_No extraction available — run stage 3 first._")
         return "\n".join(lines) + "\n"
 
+    # Apply the same confidence filter as stage 4 — keeps summaries consistent
+    # with indexes.
+    import importlib
+    stage4 = importlib.import_module("pipeline.04_link")
+    ext = stage4.filter_low_confidence(ext)
+
     # --- Context ---
     daily = ext.get("daily_tasks", [])
     weekly = ext.get("weekly_tasks", [])
