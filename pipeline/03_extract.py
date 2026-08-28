@@ -87,6 +87,38 @@ def build_prompt(template: str, transcript_json: str, extra_context: dict | None
     return f"{template}\n\n## Transcript\n```json\n{transcript_json}\n```{ctx}\n\nNow produce the JSON output."
 
 
+def meeting_date_context(meeting_dir: Path, transcript_lang: str | None = None) -> dict:
+    """Build the meeting-context block passed into every prompt.
+
+    Anchors the model to the actual meeting date so it doesn't hallucinate
+    dates (e.g. the 'week 2023-W36' bug seen in the real audio test).
+    """
+    meta_path = meeting_dir / "meta.json"
+    if not meta_path.exists():
+        return {}
+    meta = json.loads(meta_path.read_text())
+    date = meta.get("date", "")
+    ctx = {
+        "meeting_date": date,                       # YYYY-MM-DD
+        "meeting_id": meta.get("id", ""),
+        "title": meta.get("title", ""),
+        "language": meta.get("language") or transcript_lang or "unknown",
+        "duration_sec": meta.get("duration_sec"),
+        "drive_subfolder": meta.get("source", {}).get("drive_subfolder", ""),
+    }
+    # Add ISO week for convenience — derived from meeting_date
+    if date:
+        try:
+            from datetime import date as _date
+            y, m, d = map(int, date.split("-"))
+            iso = _date(y, m, d).isocalendar()
+            ctx["iso_year"] = iso[0]
+            ctx["iso_week"] = f"{iso[0]}-W{iso[1]:02d}"
+        except Exception:
+            pass
+    return ctx
+
+
 def call_litellm(prompt: str, max_retries: int = 2) -> dict:
     """Call LiteLLM gateway and return parsed JSON. Raises on failure."""
     try:
@@ -151,11 +183,17 @@ def extract_one(meeting_dir: Path, *, force: bool = False) -> dict:
 
     # Build context for topics extraction — list prior meetings and their topics.
     prior_meetings_ctx = build_prior_meetings_context(meeting_dir)
+    # Build the meeting-context block (date, language, subfolder) — passed to
+    # every prompt so the LLM can ground dates to the actual meeting date.
+    meeting_ctx = meeting_date_context(meeting_dir, transcript.get("language"))
 
     extraction: dict[str, Any] = {}
     for prompt_file, ctx_marker in EXTRACTION_PROMPTS:
         template = load_prompt(prompt_file)
-        ctx = prior_meetings_ctx if ctx_marker == "topics" else None
+        if ctx_marker == "topics":
+            ctx = {**meeting_ctx, **prior_meetings_ctx} if prior_meetings_ctx else meeting_ctx
+        else:
+            ctx = meeting_ctx if meeting_ctx else None
         prompt = build_prompt(template, transcript_str, ctx)
         try:
             partial = call_litellm(prompt)

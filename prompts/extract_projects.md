@@ -2,6 +2,25 @@
 
 You are extracting **project-level information** — proposals, status updates, pivots, dependencies — from a meeting transcript. Projects are ongoing initiatives with multiple tasks and a goal.
 
+## Date anchoring (CRITICAL)
+
+The meeting's actual date is provided in the `Context` block as
+`meeting_date` (YYYY-MM-DD) and `iso_week` (e.g. `2026-W08`). When a task or
+OKR mentions a deadline:
+
+- Use `meeting_date` for the deadline if the speaker says "today" or "tomorrow"
+- Use the speaker's explicit date verbatim (reformat to YYYY-MM-DD)
+- For relative deadlines ("this week", "next month", "by Friday"), compute
+  from `meeting_date` and write `deadline` / `week` / `target_date` as YYYY-MM-DD
+- If no deadline is mentioned, set `deadline` (and `target_date`, `week`) to `null` — **NEVER guess or invent a date**
+
+Example: meeting_date=2026-02-18, speaker says "we need this by Friday":
+- Friday after Feb-18-2026 (Wed) is Feb-20-2026
+- Output: `"deadline": "2026-02-20"`, NOT `"2023-04-25"` or `"2023-W36"`
+
+This rule prevents the model from hallucinating dates (verified bug:
+zai-glm-4-flash said "2023-W36" for a2026 meeting).
+
 ## Scope rule (CRITICAL)
 
 A **project item** is one of:
