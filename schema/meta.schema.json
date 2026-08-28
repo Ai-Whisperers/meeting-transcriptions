@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-whisperers.dev/schemas/meta.schema.json",
+  "title": "Pipeline run metadata",
+  "type": "object",
+  "required": ["run_id", "started_at", "stages"],
+  "properties": {
+    "run_id": { "type": "string", "pattern": "^[0-9]{8}_[0-9]{6}_[a-z0-9]{6}$" },
+    "meeting_id": { "type": "string" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" },
+    "stages": {
+      "type": "object",
+      "properties": {
+        "ingest": { "type": "object" },
+        "transcribe": { "type": "object" },
+        "extract": { "type": "object" },
+        "link": { "type": "object" }
+      }
+    },
+    "errors": { "type": "array", "items": { "type": "string" } },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}

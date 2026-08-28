@@ -1,0 +1,39 @@
+# Pipeline outputs (per-meeting folders) live OUTSIDE the repo, in /opt/data/
+# The repo holds code + schemas + prompts + docs only.
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Secrets — never commit
+*.pem
+*.key
+*sa.json
+gcp-*.json
+
+# Local pipeline data
+inbox/
+produced/
+extracted/
+indexed/
+
+# WhisperX model cache (re-downloadable, never commit)
+models/
+
+# Logs
+*.log
+logs/

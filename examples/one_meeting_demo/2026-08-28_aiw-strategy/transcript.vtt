@@ -1,0 +1,25 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:02.000
+<v SPEAKER_00>Buenas, vamos a empezar con la revisión semanal del equipo AIW.
+
+00:00:03.000 --> 00:00:05.000
+<v SPEAKER_01>Sí, lo primero que tenemos que resolver hoy es el validador E.164.
+
+00:00:06.000 --> 00:00:08.000
+<v SPEAKER_00>Hay que mirar el regex del validador hoy mismo, no puede seguir así.
+
+00:00:09.000 --> 00:00:11.000
+<v SPEAKER_01>Aprobado, lo hago mañana. También deberíamos limpiar el inbox de WhatsApp esta semana.
+
+00:00:12.000 --> 00:00:14.000
+<v SPEAKER_00>Tenemos que resolver el HTTP 402 de LiteLLM este mes. Los veinte jobs semanales están bloqueados.
+
+00:00:15.000 --> 00:00:17.000
+<v SPEAKER_01>Propongo migrar el OKR tracker a un LLM local mientras tanto.
+
+00:00:18.000 --> 00:00:20.000
+<v SPEAKER_00>Aprobado, lo hago esta semana. También el cascade de LiteLLM 402 sigue sin resolverse.
+
+00:00:21.000 --> 00:00:23.000
+<v SPEAKER_01>OK, decisión tomada. Vamos a tener que meter créditos antes de fin de mes.

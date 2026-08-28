@@ -1,0 +1,55 @@
+{
+  "engine": "whisperx",
+  "model": "medium",
+  "language": "es",
+  "segments": [
+    {
+      "start_time": 0.0,
+      "end_time": 2.0,
+      "speaker": "SPEAKER_00",
+      "text": "Buenas, vamos a empezar con la revisión semanal del equipo AIW."
+    },
+    {
+      "start_time": 3.0,
+      "end_time": 5.0,
+      "speaker": "SPEAKER_01",
+      "text": "Sí, lo primero que tenemos que resolver hoy es el validador E.164."
+    },
+    {
+      "start_time": 6.0,
+      "end_time": 8.0,
+      "speaker": "SPEAKER_00",
+      "text": "Hay que mirar el regex del validador hoy mismo, no puede seguir así."
+    },
+    {
+      "start_time": 9.0,
+      "end_time": 11.0,
+      "speaker": "SPEAKER_01",
+      "text": "Aprobado, lo hago mañana. También deberíamos limpiar el inbox de WhatsApp esta semana."
+    },
+    {
+      "start_time": 12.0,
+      "end_time": 14.0,
+      "speaker": "SPEAKER_00",
+      "text": "Tenemos que resolver el HTTP 402 de LiteLLM este mes. Los veinte jobs semanales están bloqueados."
+    },
+    {
+      "start_time": 15.0,
+      "end_time": 17.0,
+      "speaker": "SPEAKER_01",
+      "text": "Propongo migrar el OKR tracker a un LLM local mientras tanto."
+    },
+    {
+      "start_time": 18.0,
+      "end_time": 20.0,
+      "speaker": "SPEAKER_00",
+      "text": "Aprobado, lo hago esta semana. También el cascade de LiteLLM 402 sigue sin resolverse."
+    },
+    {
+      "start_time": 21.0,
+      "end_time": 23.0,
+      "speaker": "SPEAKER_01",
+      "text": "OK, decisión tomada. Vamos a tener que meter créditos antes de fin de mes."
+    }
+  ]
+}

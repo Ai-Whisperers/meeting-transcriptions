@@ -1,0 +1,71 @@
+{
+  "daily_tasks": [
+    {
+      "task": "Revisar el regex del validador E.164",
+      "owner": "Iván",
+      "deadline": "2026-08-28",
+      "topic": "validador E.164",
+      "verbatim": "Hay que mirar el regex del validador hoy mismo, no puede seguir así",
+      "timestamp": "00:06:00"
+    }
+  ],
+  "weekly_tasks": [
+    {
+      "task": "Limpiar inbox de WhatsApp",
+      "owner": "Kiki",
+      "week": "2026-W35",
+      "topic": "inbox WhatsApp",
+      "blocks": []
+    },
+    {
+      "task": "Migrar OKR tracker a LLM local",
+      "owner": "Iván",
+      "week": "2026-W35",
+      "topic": "OKR tracker LLM migration",
+      "blocks": [
+        "aiw-okr-tracker-weekly"
+      ]
+    }
+  ],
+  "monthly_okrs": [
+    {
+      "objective": "Resolver cascade HTTP 402 de LiteLLM",
+      "kr": "20+ crons semanales vuelven a PASS antes de 2026-08-31",
+      "owner": "Iván",
+      "target_date": "2026-08-31",
+      "metric": "count"
+    }
+  ],
+  "topics": [
+    {
+      "name": "LiteLLM 402 cascade",
+      "status": "in-progress",
+      "first_mentioned_at": "00:12:00"
+    },
+    {
+      "name": "validador E.164",
+      "status": "in-progress",
+      "first_mentioned_at": "00:03:00"
+    },
+    {
+      "name": "OKR tracker LLM migration",
+      "status": "in-progress",
+      "first_mentioned_at": "00:15:00"
+    },
+    {
+      "name": "inbox WhatsApp",
+      "status": "open",
+      "first_mentioned_at": "00:09:00"
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Migrar OKR tracker a LLM local temporalmente",
+      "made_by": "Iván",
+      "timestamp": "00:18:00",
+      "rationale": "LiteLLM 402 cascade bloquea 20+ crons semanales"
+    }
+  ],
+  "extraction_engine": "smoke-test-mock",
+  "extracted_at": "2026-08-28T16:55:00+00:00"
+}

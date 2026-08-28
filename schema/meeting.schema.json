@@ -1,0 +1,165 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ai-whisperers.dev/schemas/meeting.schema.json",
+  "title": "Meeting",
+  "description": "Canonical record of a single meeting: meta, transcript, extraction, links.",
+  "type": "object",
+  "required": ["id", "date", "language", "transcript", "extraction", "meta"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}_[a-z0-9][a-z0-9_-]*$",
+      "description": "Meeting slug: YYYY-MM-DD_<short-name>"
+    },
+    "date": { "type": "string", "format": "date" },
+    "title": { "type": "string" },
+    "duration_sec": { "type": "number", "minimum": 0 },
+    "language": { "type": "string", "enum": ["es", "en", "pt", "mixed"] },
+    "source": {
+      "type": "object",
+      "properties": {
+        "kind": { "type": "string", "enum": ["google-drive", "local-upload", "manual-import"] },
+        "drive_file_id": { "type": "string" },
+        "local_path": { "type": "string" },
+        "original_filename": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "speakers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label", "talk_pct", "turns"],
+        "properties": {
+          "label": { "type": "string", "description": "WhisperX speaker label, e.g. SPEAKER_00" },
+          "inferred_name": { "type": ["string", "null"], "description": "Best guess, null until linked across meetings" },
+          "talk_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+          "turns": { "type": "integer", "minimum": 0 },
+          "word_tokens": { "type": "integer", "minimum": 0 },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "Identity confidence (0=unknown, 1=certain)" }
+        }
+      }
+    },
+    "transcript": {
+      "type": "object",
+      "required": ["segments", "engine"],
+      "properties": {
+        "engine": { "type": "string", "enum": ["whisperx", "urbo-scribe", "elevenlabs-scribe"] },
+        "model": { "type": "string" },
+        "language": { "type": "string" },
+        "segments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["start_time", "end_time", "speaker", "text"],
+            "properties": {
+              "start_time": { "type": "number" },
+              "end_time": { "type": "number" },
+              "speaker": { "type": "string" },
+              "text": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "extraction": {
+      "type": "object",
+      "required": ["daily_tasks", "weekly_tasks", "monthly_okrs", "topics", "decisions"],
+      "properties": {
+        "extraction_engine": { "type": "string" },
+        "extraction_at": { "type": "string", "format": "date-time" },
+        "daily_tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["task", "owner", "topic"],
+            "properties": {
+              "task": { "type": "string" },
+              "owner": { "type": "string" },
+              "deadline": { "type": "string", "format": "date" },
+              "topic": { "type": "string" },
+              "verbatim": { "type": "string" },
+              "timestamp": { "type": "string" }
+            }
+          }
+        },
+        "weekly_tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["task", "owner", "topic", "week"],
+            "properties": {
+              "task": { "type": "string" },
+              "owner": { "type": "string" },
+              "week": { "type": "string", "pattern": "^[0-9]{4}-W[0-9]{2}$" },
+              "topic": { "type": "string" },
+              "blocks": { "type": "array", "items": { "type": "string" }, "description": "What this task unblocks" }
+            }
+          }
+        },
+        "monthly_okrs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["objective", "owner", "kr"],
+            "properties": {
+              "objective": { "type": "string" },
+              "kr": { "type": "string" },
+              "owner": { "type": "string" },
+              "target_date": { "type": "string", "format": "date" },
+              "metric": { "type": "string" }
+            }
+          }
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "first_raised_here"],
+            "properties": {
+              "name": { "type": "string" },
+              "first_raised_here": { "type": "boolean" },
+              "carried_from": { "type": ["string", "null"], "description": "Previous meeting id" },
+              "raised_again_in_meetings": { "type": "array", "items": { "type": "string" } },
+              "status": { "type": "string", "enum": ["open", "in-progress", "blocked", "resolved", "deferred"] }
+            }
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["decision", "made_by", "timestamp"],
+            "properties": {
+              "decision": { "type": "string" },
+              "made_by": { "type": "string" },
+              "timestamp": { "type": "string" },
+              "rationale": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "links": {
+      "type": "object",
+      "properties": {
+        "previous_meeting_id": { "type": ["string", "null"] },
+        "next_meeting_id": { "type": ["string", "null"] },
+        "carried_topics": { "type": "array", "items": { "type": "string" } },
+        "new_topics": { "type": "array", "items": { "type": "string" } },
+        "related_repos": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": ["created_at", "schema_version"],
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "pipeline_run_id": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}
