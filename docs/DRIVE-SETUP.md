@@ -1,105 +1,108 @@
-# Google Drive Setup — service account flow
+# Google Drive Setup
 
-The pipeline can pull directly from a Google Drive folder using a service account. This doc walks through the one-time setup.
+The pipeline can ingest from Google Drive in **two modes**:
 
-## Why a service account (not OAuth)?
+## Mode 1 — Public folder (anyone-with-link) — RECOMMENDED, no setup
 
-- **No interactive consent** — service accounts don't need a browser
-- **No refresh tokens** — credentials are a static JSON key
-- **CI-friendly** — works in GitHub Actions, cron jobs, sandboxes
-- **Scoped access** — only the folders you share with the SA email
+If the Drive folder is shared as "Anyone with the link can view", the pipeline
+can list and download without any credentials. This is the **default and zero-setup path**.
 
-The cost: you have to create the service account once in Google Cloud Console (~3 minutes).
+**Setup steps:**
 
-## Step 1 — Create a Google Cloud project (skip if you have one)
+1. In Google Drive, right-click the recordings folder → **Share** → **General access** → **Anyone with the link** → **Viewer**.
+2. Copy the folder URL → extract the folder ID (the long alphanumeric part after `/folders/`).
+3. Set `MT_DRIVE_FOLDER` to that ID (or hardcode it in `pipeline/config.py`).
+4. Run:
+   ```bash
+   python -m pipeline.01_ingest --source drive-public
+   ```
 
-1. Open <https://console.cloud.google.com/>
-2. Top-left project picker → "New project"
-3. Name: `aiw-meetings` (or whatever). Click Create.
-4. Make sure the project is selected.
+That's it — no service account, no JSON keys, no OAuth.
 
-## Step 2 — Enable the Drive API
+**How it works internally:**
+- `https://drive.google.com/embeddedfolderview?id=<id>` returns an HTML page listing every file + subfolder. We parse this with regex.
+- `https://drive.google.com/uc?export=download&id=<file_id>` downloads the actual file.
+- Recursively walks subfolders and records `drive_subfolder` in `meta.json` (e.g., `daily`, `weekly`, `monthly`).
+- Dedupes by sha256 — if you uploaded the same audio to multiple folders, only one meeting folder is created.
+- Handles Google's "virus scan" interstitial for large files (>100MB) by following the confirm-token redirect.
 
-1. Left menu → "APIs & Services" → "Library"
-2. Search "Google Drive API" → click → "Enable"
+**Limitations:**
+- Rate-limited to ~5-10 req/sec by Google's bot detection. For 100s of files, expect ~1-2 min total.
+- Won't work if the folder is "Restricted" (only people you shared with).
+- The `embeddedfolderview` parser is brittle — Google changes their HTML occasionally. If it stops working, fall back to Mode 2.
 
-## Step 3 — Create a service account
+## Mode 2 — Service account (private folder)
 
-1. Left menu → "APIs & Services" → "Credentials"
-2. "Create credentials" → "Service account"
-3. Name: `aiw-meetings-watcher`
-4. Description: "Pulls meeting audios from Drive for transcription pipeline"
-5. Click "Create and continue"
-6. Skip the optional "Grant access" steps — they're not needed for read-only
-7. Click "Done"
+For folders that are NOT publicly shared, or for heavy automation, use a Google Cloud service account.
 
-## Step 4 — Create and download the JSON key
+**Setup steps:**
 
-1. In the Credentials list, click the service account you just made
-2. "Keys" tab → "Add key" → "Create new key" → JSON → "Create"
-3. The JSON file downloads. Save it somewhere safe (DO NOT commit it).
-   - Recommended path: `/opt/data/secrets/gdrive-sa.json`
-   - Mode: `chmod 600 /opt/data/secrets/gdrive-sa.json`
-4. Note the `client_email` field — looks like `aiw-meetings-watcher@<project>.iam.gserviceaccount.com`
+1. **Create service account** in Google Cloud Console:
+   - Go to https://console.cloud.google.com/iam-admin/serviceaccounts
+   - Select the project (or create one — `aiw-meetings` is fine)
+   - Click **+ Create Service Account** → name it `meeting-transcriptions-pipeline`
+   - Skip role assignment (Drive doesn't need IAM roles)
+   - Click **Done**
 
-## Step 5 — Share your Drive folder with the service account
+2. **Download the JSON key:**
+   - Click the service account → **Keys** tab → **Add Key** → **Create new key** → **JSON**
+   - Save the file (e.g., `~/.config/gcloud/aiw-sa.json`)
 
-1. Open Google Drive
-2. Navigate to the meeting-audios folder
-3. Right-click → "Share"
-4. Paste the `client_email` from step 4
-5. Role: "Viewer" (read-only is enough)
-6. Uncheck "Notify people" → Share
+3. **Share the Drive folder with the service account:**
+   - Get the service account's email from the JSON (field `client_email`, looks like `meeting-transcriptions-pipeline@<project>.iam.gserviceaccount.com`)
+   - In Google Drive, right-click the recordings folder → **Share** → paste that email → **Viewer** → send
 
-## Step 6 — Wire the key into the pipeline
+4. **Wire the key into the pipeline:**
+   - Locally: export `MT_GOOGLE_SA_JSON=/path/to/sa.json`
+   - In GitHub Actions: add a repository secret `GOOGLE_SA_JSON_CONTENT` with the entire JSON file contents (Actions can't mount files easily). The pipeline reads `MT_GOOGLE_SA_JSON_CONTENT` if `MT_GOOGLE_SA_JSON` isn't set.
 
-### Option A — local `.env` (development)
+5. **Install the auth library** (only needed for Mode 2):
+   ```bash
+   uv pip install google-api-python-client google-auth
+   ```
+
+6. **Run:**
+   ```bash
+   python -m pipeline.01_ingest --source drive
+   ```
+
+**When to prefer Mode 2 over Mode 1:**
+- Folder is private and can't be made public (security/compliance)
+- You need to ingest from many folders / accounts
+- You want per-user audit logging in Google Cloud
+- You're hitting Google's bot-detection rate limits with Mode 1
+
+## Mode 3 — Local upload (fallback)
+
+If neither Drive mode works, drop audio files directly into `/opt/data/inbox/meetings/`
+and the pipeline picks them up. The pipeline's `--source local` mode scans a directory
+and ingests everything it finds.
+
+## Verifying setup
+
+After wiring, verify the pipeline can see the folder:
 
 ```bash
-# /opt/data/.env
-MT_GOOGLE_SA_JSON=/opt/data/secrets/gdrive-sa.json
+python -m pipeline.01_ingest --source drive-public 2>&1 | head -20
 ```
 
-### Option B — GitHub Actions secret (CI)
+You should see `[ingest] <audio> -> <YYYY-MM-DD>_<slug>/` lines, one per file.
+If you see `[error] list_folder(...) failed`, check the folder permissions.
 
-```
-gh secret set GOOGLE_SA_JSON --repo Ai-Whisperers/meeting-transcriptions < /opt/data/secrets/gdrive-sa.json
-```
+## Folder naming convention
 
-The workflow writes it to `/tmp/secrets/sa.json` at runtime.
+The pipeline uses **Drive subfolder names** to infer meeting cadence:
 
-### Option C — Bitwarden Secrets (BWS) (recommended for cross-tool use)
+| Drive subfolder (raw) | Normalized | Pipeline uses as |
+|---|---|---|
+| `Daily`s` | `daily` | cadence hint in `meta.json.source.drive_subfolder` |
+| `Weekly`s` | `weekly` | " |
+| `Monthly`s` | `monthly` | " |
+| `Client Meetings` | `client-meeting` | " |
 
-```bash
-# Store the JSON content as a secret
-bws secret create --name MT_GOOGLE_SA_JSON --value "$(cat /opt/data/secrets/gdrive-sa.json)"
+The raw label has a backtick + trailing `s` because Drive auto-possessifies folder names
+shared between users (the original is "Daily" but Drive rendered it as "Daily`s").
+The pipeline strips these suffixes so the cadence hint is clean.
 
-# Fetch at runtime
-MT_GOOGLE_SA_JSON_CONTENT=$(bws secret get MT_GOOGLE_SA_JSON --raw)
-```
-
-## Step 7 — Test the connection
-
-```bash
-export MT_GOOGLE_SA_JSON=/opt/data/secrets/gdrive-sa.json
-python -m pipeline.01_ingest --source drive
-```
-
-Expected output:
-
-```
-[ingest] 2026-08-28_aiw-strategy.mp3 -> 2026-08-28_aiw-strategy/ (sha=...)
-[ingest] 2026-08-25_aiw-strategy.mp3 -> 2026-08-25_aiw-strategy/ (sha=...)
-```
-
-If you get `403 The caller does not have permission`, the share in step 5 didn't propagate. Re-share and wait 30 seconds.
-
-## Security notes
-
-- The JSON key is a credential. Treat it like a private SSH key.
-- It's read-only (`drive.readonly` scope). The service account cannot modify your Drive.
-- Rotate quarterly. Generate a new key in step 4, replace, delete the old one.
-
-## Cost
-
-Zero. Google Drive API has generous free quotas (12,000 requests/minute, 1 billion requests/day at time of writing).
+The cadence hint is informational — it can be overridden or ignored in stage 3 extraction.
+We don't force "weekly" subfolder meetings to have weekly tasks.

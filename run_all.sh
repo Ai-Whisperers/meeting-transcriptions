@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Run the full pipeline for everything in MT_INBOX.
 # Designed to be called from cron, GitHub Actions, or manually.
+#
+# Modes:
+#   bash run_all.sh                          # local-only (no Drive ingest)
+#   bash run_all.sh --source drive-public    # pull from public Drive folder, then process
+#   bash run_all.sh --source drive           # pull from service-account Drive folder, then process
 
 set -euo pipefail
 
@@ -16,7 +21,7 @@ python3 -c "import litellm" 2>/dev/null || {
 }
 
 # Ensure dirs exist
-mkdir -p /opt/data/inbox/meetings /opt/data/indexed/meetings
+mkdir -p "${MT_INBOX:-/opt/data/inbox/meetings}" "${MT_INDEX:-/opt/data/indexed/meetings}"
 
 # Run the pipeline. --all is the default.
 exec python3 -m pipeline.run_all "$@"

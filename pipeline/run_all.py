@@ -2,7 +2,7 @@
 """Run the full pipeline for every meeting in MT_INBOX.
 
 Stages run sequentially per meeting:
-  1. ingest (skipped — files already in inbox)
+  1. ingest (OPTIONAL — run before stages 2-4 if --source is set)
   2. transcribe (skip if transcript.json exists)
   3. extract (skip if extraction.json exists)
   4. link (always re-runs, computes cross-meeting graph)
@@ -10,12 +10,14 @@ Stages run sequentially per meeting:
 Then it rebuilds the indexes.
 
 Usage:
-  ./run_all.sh             # process everything in /opt/data/inbox/meetings
-  python -m pipeline.run_all --meeting <id>   # single meeting
+  ./run_all.sh                                  # process everything in MT_INBOX
+  python -m pipeline.run_all --source drive-public   # pull from public Drive folder, then process
+  python -m pipeline.run_all --meeting <id>     # single meeting
+  python -m pipeline.run_all --force            # re-run all stages even if outputs exist
 
-Reads:  /opt/data/inbox/meetings/<id>/audio.<ext>
-Writes: /opt/data/inbox/meetings/<id>/{transcript,extraction}.{json,txt,vtt}
-        /opt/data/indexed/meetings/{topics,people,decisions,okrs,daily_tasks,weekly_tasks}.md
+Reads:  ${MT_INBOX}/<id>/audio.<ext>
+Writes: ${MT_INBOX}/<id>/{transcript,extraction}.{json,txt,vtt}
+        ${MT_INDEX}/{topics,people,decisions,okrs,daily_tasks,weekly_tasks}.md
 """
 from __future__ import annotations
 
@@ -28,6 +30,7 @@ from pipeline import config  # noqa: E402
 
 import importlib  # noqa: E402
 
+stage1 = importlib.import_module("pipeline.01_ingest")
 stage2 = importlib.import_module("pipeline.02_transcribe")
 stage3 = importlib.import_module("pipeline.03_extract")
 stage4 = importlib.import_module("pipeline.04_link")
@@ -53,8 +56,18 @@ def run_one(meeting_dir: Path, *, force: bool = False) -> dict:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Run full pipeline for all/new meetings.")
     p.add_argument("--meeting", help="Single meeting id.")
+    p.add_argument("--source", choices=["local", "drive", "drive-public"], default=None,
+                   help="If set, ingest from this source first (then process everything in inbox).")
     p.add_argument("--force", action="store_true")
     args = p.parse_args(argv)
+
+    # Optional pre-stage: ingest
+    if args.source == "drive":
+        ingested = stage1.ingest_drive_folder(force=args.force)
+        print(f"[run_all] ingested {len(ingested)} meeting(s) from service-account Drive", file=sys.stderr)
+    elif args.source == "drive-public":
+        ingested = stage1.ingest_drive_public_folder(force=args.force)
+        print(f"[run_all] ingested {len(ingested)} meeting(s) from public Drive folder", file=sys.stderr)
 
     if args.meeting:
         meeting_dir = config.INBOX / args.meeting
@@ -64,7 +77,9 @@ def main(argv: list[str] | None = None) -> int:
         run_one(meeting_dir, force=args.force)
     else:
         for mdir in sorted(config.INBOX.iterdir()):
-            if not mdir.is_dir() or not (mdir / "audio.mp3").exists() and not any(mdir.glob("audio.*")):
+            if not mdir.is_dir():
+                continue
+            if not any(mdir.glob("audio.*")):
                 continue
             run_one(mdir, force=args.force)
 

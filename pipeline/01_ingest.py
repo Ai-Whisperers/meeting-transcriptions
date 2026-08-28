@@ -25,6 +25,7 @@ import re
 import sys
 import shutil
 from datetime import datetime, timezone
+from html import unescape
 from pathlib import Path
 from typing import Iterator
 
@@ -34,7 +35,19 @@ from pipeline import config  # noqa: E402
 
 
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".ogg", ".opus", ".flac", ".webm", ".mp4", ".mov"}
-FILENAME_DATE_RE = re.compile(r"(20\d{2})[-_]?(\d{2})[-_]?(\d{2})")
+
+# Filename date patterns, tried in order. The first match wins.
+# Group captures: (year, month, day)
+_FILENAME_DATE_PATTERNS = [
+    # ISO: YYYY-MM-DD or YYYY_MM_DD or YYYYMMDD
+    re.compile(r"(20\d{2})[-_]?(\d{2})[-_]?(\d{2})"),
+    # DD-MM-YYYY HH.MM (European phone/URBO recorder format — day first)
+    re.compile(r"(?:^|[^\d])(\d{2})-(\d{2})-(20\d{2})(?:[ _-]|$)"),
+    # MM-DD-YYYY HH.MM (US format — only used if month <= 12)
+    re.compile(r"(?:^|[^\d])(\d{2})-(\d{2})-(20\d{2})(?:[ _-]|$)"),
+    # DD.MM.YYYY HH.MM (German)
+    re.compile(r"(?:^|[^\d])(\d{2})\.(\d{2})\.(20\d{2})(?:[ _-]|$)"),
+]
 
 
 def sha256_of_file(path: Path) -> str:
@@ -46,21 +59,64 @@ def sha256_of_file(path: Path) -> str:
 
 
 def parse_date_from_filename(name: str) -> str | None:
-    m = FILENAME_DATE_RE.search(name)
-    if not m:
-        return None
-    y, mo, d = m.groups()
-    try:
-        return datetime(int(y), int(mo), int(d)).strftime("%Y-%m-%d")
-    except ValueError:
-        return None
+    """Extract YYYY-MM-DD from a filename using multiple patterns.
+
+    Tries ISO (YYYY-MM-DD) first, then DD-MM-YYYY / MM-DD-YYYY / DD.MM.YYYY.
+    For ambiguous DD-vs-MM-first patterns, we test BOTH and prefer the one that
+    is a valid calendar date. We never return an invalid date.
+    """
+    # Pattern 0: ISO prefix is unambiguous
+    m = _FILENAME_DATE_PATTERNS[0].search(name)
+    if m:
+        y, mo, d = m.groups()
+        try:
+            return datetime(int(y), int(mo), int(d)).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+
+    # Patterns 1 & 2: DD-MM-YYYY vs MM-DD-YYYY (same regex shape, ambiguous).
+    # Try both orderings and prefer the one that's a real date. If both are
+    # valid (e.g. 02-05-2026 = both Feb 5 and May 2 work), prefer DD-MM (European).
+    for m in _FILENAME_DATE_PATTERNS[1].finditer(name):
+        a, b, y = m.groups()
+        # Try as DD-MM-YYYY first (European, matches the recorder formats)
+        for day, month in [(a, b), (b, a)]:
+            try:
+                dt = datetime(int(y), int(month), int(day))
+                return dt.strftime("%Y-%m-%d")
+            except ValueError:
+                continue
+        break  # only consider the first ambiguous match
+
+    # Pattern 3: DD.MM.YYYY
+    for m in _FILENAME_DATE_PATTERNS[3].finditer(name):
+        d, mo, y = m.groups()
+        try:
+            return datetime(int(y), int(mo), int(d)).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+
+    return None
 
 
 def slugify(name: str) -> str:
-    """Reduce a filename to a kebab-case slug. ≤ 40 chars."""
+    """Reduce a filename to a kebab-case slug. ≤ 40 chars.
+
+    Strips leading date+time patterns so '02-19-2026 10.26.m4a' → '02-19-2026-10-26'
+    is avoided; we keep just the meaningful portion if any.
+    """
     s = Path(name).stem.lower()
     s = re.sub(r"[^a-z0-9]+", "-", s)
     s = re.sub(r"-+", "-", s).strip("-")
+    # Strip the leading date+time so the slug is just the descriptive bit
+    # e.g. "02-19-2026-10-26" -> "" (no slug from this filename)
+    m = re.match(r"^\d{2,4}(-\d{2}){2,3}(-\d{2}){1,2}(-\d+)?$", s)
+    if m:
+        return ""  # pure-date filename, no descriptive slug
+    # If the slug starts with a date-like prefix, strip it
+    s = re.sub(r"^\d{4}(-\d{2}){2}(-\d{2}){1,2}-?", "", s)  # ISO
+    s = re.sub(r"^\d{2}-\d{2}-\d{4}(-\d{2}){1,2}-?", "", s)  # DD-MM-YYYY-HH-MM
+    s = re.sub(r"^-+", "", s)
     return s[:40] or "untitled"
 
 
@@ -101,7 +157,145 @@ def write_meta(meeting_dir: Path, audio_path: Path, date: str, slug: str, source
     return out
 
 
-def ingest_local(audio_path: Path, *, force: bool = False) -> Path:
+def iter_local_inbox_candidates(root: Path) -> Iterator[Path]:
+    """Walk a directory looking for audio files NOT yet inside MT_INBOX."""
+    for p in root.rglob("*"):
+        if p.is_file() and p.suffix.lower() in AUDIO_EXTENSIONS:
+            yield p
+
+
+def ingest_drive_public_folder(*, force: bool = False) -> list[Path]:
+    """Ingest from a PUBLICLY-SHARED Google Drive folder (anyone-with-link).
+
+    No authentication required. Uses:
+      - https://drive.google.com/embeddedfolderview?id=<id>  → folder listing
+      - https://drive.google.com/uc?export=download&id=<id>  → file download
+
+    Recursively walks all subfolders (handles Daily/Weekly/Monthly layout).
+    Each file is staged to /tmp, then handed to ingest_local() which does
+    the dedup + meta.json write.
+
+    This is the SIMPLE path. For service-account ingest, use ingest_drive_folder().
+    """
+    import urllib.request
+
+    folder_id = config.DRIVE_FOLDER_ID
+    if not folder_id:
+        print("[error] MT_DRIVE_FOLDER not set", file=sys.stderr)
+        return []
+
+    staging = Path("/tmp/mt_public_drive_staging")
+    staging.mkdir(parents=True, exist_ok=True)
+
+    def list_folder(fid: str) -> list[dict]:
+        url = f"https://drive.google.com/embeddedfolderview?id={fid}"
+        html = urllib.request.urlopen(url, timeout=30).read().decode("utf-8", errors="replace")
+        entries = []
+        # Each entry has id, link, name, kind
+        for m in re.finditer(
+            r'<div class="flip-entry"[^>]*id="entry-([^"]+)"[^>]*>(.*?)(?=<div class="flip-entry"|</div></div></body>)',
+            html, re.DOTALL
+        ):
+            entry_id, block = m.groups()
+            title_m = re.search(r'<div class="flip-entry-title">([^<]+)</div>', block)
+            link_m = re.search(r'href="([^"]+)"', block)
+            if not (title_m and link_m):
+                continue
+            kind = ("folder" if "drive-sprite-folder-" in block
+                    else "audio" if "type/audio/mpeg" in block
+                    else "pdf" if "type/application/pdf" in block
+                    else "other")
+            entries.append({
+                "entry_id": entry_id,
+                "name": unescape(title_m.group(1)).strip(),
+                "url": link_m.group(1),
+                "kind": kind,
+            })
+        return entries
+
+    def download_file(file_id: str, dest: Path) -> Path | None:
+        url = f"https://drive.google.com/uc?export=download&id={file_id}"
+        try:
+            with urllib.request.urlopen(url, timeout=120) as resp:
+                # Google sometimes serves an HTML "virus scan" interstitial for large files.
+                # The actual file starts with bytes \x00\x00\x00\x18ftyp or similar — check magic.
+                ct = resp.headers.get("Content-Type", "")
+                data = resp.read()
+                if not data:
+                    return None
+                # Detect and skip the virus-scan interstitial HTML
+                if data[:4] in (b"<htm", b"<!DO", b"\xef\xbb\xbf<"):
+                    # Try the confirm-token variant
+                    confirm_match = re.search(rb"download_url&quot;:&quot;([^&]+)&quot;", data)
+                    if confirm_match:
+                        token_url = confirm_match.group(1).decode("utf-8", errors="replace").replace("\\u003d", "=").replace("\\u0026", "&")
+                        with urllib.request.urlopen(token_url, timeout=300) as r2:
+                            data = r2.read()
+                dest.write_bytes(data)
+                return dest
+        except Exception as e:
+            print(f"[error] download {file_id} failed: {e}", file=sys.stderr)
+            return None
+
+    ingested: list[Path] = []
+    # Map sha256 -> deepest drive_subfolder encountered (root < subfolder)
+    sha_to_best_subfolder: dict[str, str] = {}
+
+    def walk(fid: str, parent_path: str = ""):
+        try:
+            children = list_folder(fid)
+        except Exception as e:
+            print(f"[error] list_folder({fid}) failed: {e}", file=sys.stderr)
+            return
+        for child in children:
+            if child["kind"] == "folder":
+                # recurse — build breadcrumb path so we know Daily/Weekly/Monthly
+                sub_match = re.search(r"/folders/([a-zA-Z0-9_-]+)", child["url"])
+                if sub_match:
+                    folder_label = child["name"]
+                    folder_label = re.sub(r"[`'\u2018\u2019]?\s*s$", "", folder_label).strip()
+                    folder_label = re.sub(r"[^A-Za-z0-9]+", "-", folder_label).strip("-").lower()
+                    new_path = f"{parent_path}/{folder_label}" if parent_path else folder_label
+                    walk(sub_match.group(1), new_path)
+            elif child["kind"] in ("audio",):
+                ext = Path(child["name"]).suffix.lower() or ".m4a"
+                if ext not in AUDIO_EXTENSIONS:
+                    continue
+                # Stage with the ORIGINAL filename so date extraction works downstream
+                dest = staging / child["name"]
+                if not (dest.exists() and dest.stat().st_size > 0) or force:
+                    tmp = staging / f"_tmp_{child['entry_id']}{ext}"
+                    result = download_file(child["entry_id"], tmp)
+                    if result is None:
+                        continue
+                    # Move to the original-filename path
+                    shutil.move(str(tmp), str(dest))
+                # Update best-subfolder for this file's sha (prefer deeper)
+                sha = sha256_of_file(dest)
+                existing = sha_to_best_subfolder.get(sha, "")
+                if len(parent_path) > len(existing):
+                    sha_to_best_subfolder[sha] = parent_path
+
+    # PASS 1: walk the folder, download all unique files, track best subfolder per sha
+    walk(folder_id)
+    # PASS 2: ingest each unique file with its best subfolder context
+    seen_shas: set[str] = set()
+    for staged_file in staging.iterdir():
+        if staged_file.suffix.lower() not in AUDIO_EXTENSIONS:
+            continue
+        if staged_file.name.startswith("_tmp_"):
+            continue  # leftover from interrupted run
+        sha = sha256_of_file(staged_file)
+        if sha in seen_shas:
+            continue
+        seen_shas.add(sha)
+        subfolder = sha_to_best_subfolder.get(sha, "")
+        ingested.append(ingest_local(staged_file, force=force, drive_subfolder=subfolder))
+
+    return ingested
+
+
+def ingest_local(audio_path: Path, *, force: bool = False, drive_subfolder: str = "") -> Path:
     """Move/copy a single audio file into MT_INBOX under its meeting id folder.
 
     Returns the meeting directory.
@@ -134,21 +328,16 @@ def ingest_local(audio_path: Path, *, force: bool = False) -> Path:
 
     sha = sha256_of_file(audio_target)
     source = {
-        "kind": "local-upload",
+        "kind": "drive-public" if drive_subfolder else "local-upload",
         "local_path": str(audio_path),
         "original_filename": audio_path.name,
         "sha256": sha,
     }
+    if drive_subfolder:
+        source["drive_subfolder"] = drive_subfolder
     write_meta(target_dir, audio_target, date, slug, source)
-    print(f"[ingest] {audio_path.name} -> {meeting_id}/ (sha={sha[:12]}...)", file=sys.stderr)
+    print(f"[ingest] {audio_path.name} -> {meeting_id}/ (sha={sha[:12]}...{f' [{drive_subfolder}]' if drive_subfolder else ''})", file=sys.stderr)
     return target_dir
-
-
-def iter_local_inbox_candidates(root: Path) -> Iterator[Path]:
-    """Walk a directory looking for audio files NOT yet inside MT_INBOX."""
-    for p in root.rglob("*"):
-        if p.is_file() and p.suffix.lower() in AUDIO_EXTENSIONS:
-            yield p
 
 
 def ingest_drive_folder(*, force: bool = False) -> list[Path]:
@@ -238,7 +427,8 @@ def ingest_drive_folder(*, force: bool = False) -> list[Path]:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Stage 1: Ingest meetings from Drive or local.")
-    p.add_argument("--source", choices=["local", "drive"], default="local")
+    p.add_argument("--source", choices=["local", "drive", "drive-public"], default="local",
+                   help="drive = service-account, drive-public = anyone-with-link folder")
     p.add_argument("--path", type=Path, default=None,
                    help="With --source local: directory to scan for audio. "
                         "With --source drive: ignored (uses MT_DRIVE_FOLDER).")
@@ -250,6 +440,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.source == "drive":
         ingested = ingest_drive_folder(force=args.force)
+    elif args.source == "drive-public":
+        ingested = ingest_drive_public_folder(force=args.force)
     elif args.file:
         ingested = [ingest_local(args.file, force=args.force)]
     elif args.path:

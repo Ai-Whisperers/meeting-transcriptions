@@ -15,7 +15,7 @@ Self-hosted pipeline that takes meeting audios and produces a structured, search
                   │  Google Drive folder         │
                   │  1iuz-q9fPxup4MZjuRLSs3U3iw6FmgIF2
                   └──────────────┬───────────────┘
-                                 │ service account / local fallback
+                                 │ service account / public-link / local
                                  ▼
                   ┌──────────────────────────────┐
                   │  /opt/data/inbox/meetings/   │
@@ -77,9 +77,30 @@ python -m pipeline.04_link
 bash run_all.sh
 ```
 
-### 2. Full Drive-backed pipeline
+### 2. Public Drive folder (anyone-with-link) — zero setup, RECOMMENDED
 
-See [`docs/DRIVE-SETUP.md`](docs/DRIVE-SETUP.md) for the service-account flow.
+```bash
+# Default folder ID is already set in pipeline/config.py
+python -m pipeline.01_ingest --source drive-public
+
+# Or override the folder
+MT_DRIVE_FOLDER=1iuz-q9fPxup4MZjuRLSs3U3iw6FmgIF2 \
+  python -m pipeline.01_ingest --source drive-public
+
+# Then run the rest:
+python -m pipeline.02_transcribe --all
+python -m pipeline.03_extract --all
+python -m pipeline.04_link
+```
+
+No service account, no JSON keys, no OAuth — Drive's `embeddedfolderview`
+endpoint returns the folder listing for any "anyone with the link can view" folder.
+
+### 3. Private Drive folder (service account)
+
+See [`docs/DRIVE-SETUP.md`](docs/DRIVE-SETUP.md) for the full walkthrough.
+Short version: create a service account in Google Cloud, share the folder
+with its `client_email` as Viewer, point `MT_GOOGLE_SA_JSON` at the JSON key.
 
 ## Repository layout
 
@@ -109,7 +130,7 @@ meeting-transcriptions/
 │       └── transcript_repair.py    # WhisperX output normalization
 ├── docs/
 │   ├── ARCHITECTURE.md             # design choices + extension points
-│   ├── DRIVE-SETUP.md              # service account + sharing
+│   ├── DRIVE-SETUP.md              # all 3 ingest modes (public, service-account, local)
 │   └── WHISPERX-MODEL-CHOICE.md    # small/medium/large tradeoffs
 ├── .github/workflows/
 │   └── pipeline.yml                # cron + manual trigger
@@ -151,7 +172,7 @@ Everything is env-driven (`pipeline/config.py`). Key vars:
 |----------|---------|-------|
 | `MT_INBOX` | `/opt/data/inbox/meetings` | where ingested meetings live |
 | `MT_INDEX` | `/opt/data/indexed/meetings` | where rolled-up indexes land |
-| `MT_DRIVE_FOLDER` | `1iuz-q9fPxup4MZjuRLSs3U3iw6FmgIF2` | Google Drive folder ID |
+| `MT_DRIVE_FOLDER` | `1iuz-q9fPxup4MZjuRLSs3U3iw6FmgIF2` | Google Drive folder ID (public or shared) |
 | `MT_WHISPER_MODEL` | `medium` | `small`, `medium`, `large-v3` |
 | `MT_LITELLM_MODEL` | `claude-sonnet-4-5` | any LiteLLM-routed model |
 | `MT_LITELLM_BASE_URL` | `http://localhost:4000` | LiteLLM gateway |

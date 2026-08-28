@@ -61,7 +61,7 @@ jobs:
             google-auth \
             jsonschema
 
-      - name: Write Drive service-account key
+      - name: Write Drive service-account key (optional fallback)
         if: env.GOOGLE_SA_JSON
         run: |
           mkdir -p /tmp/secrets
