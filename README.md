@@ -13,7 +13,7 @@ Self-hosted pipeline that takes meeting audios and produces a structured, search
 ```
                   ┌──────────────────────────────┐
                   │  Google Drive folder         │
-                  │  1d6vwcPeR8jv8Sq7JOGM1IZDXYkT83Z7z
+                  │  1iuz-q9fPxup4MZjuRLSs3U3iw6FmgIF2
                   └──────────────┬───────────────┘
                                  │ service account / local fallback
                                  ▼
@@ -151,7 +151,7 @@ Everything is env-driven (`pipeline/config.py`). Key vars:
 |----------|---------|-------|
 | `MT_INBOX` | `/opt/data/inbox/meetings` | where ingested meetings live |
 | `MT_INDEX` | `/opt/data/indexed/meetings` | where rolled-up indexes land |
-| `MT_DRIVE_FOLDER` | `1d6vwcPeR8jv8Sq7JOGM1IZDXYkT83Z7z` | Google Drive folder ID |
+| `MT_DRIVE_FOLDER` | `1iuz-q9fPxup4MZjuRLSs3U3iw6FmgIF2` | Google Drive folder ID |
 | `MT_WHISPER_MODEL` | `medium` | `small`, `medium`, `large-v3` |
 | `MT_LITELLM_MODEL` | `claude-sonnet-4-5` | any LiteLLM-routed model |
 | `MT_LITELLM_BASE_URL` | `http://localhost:4000` | LiteLLM gateway |

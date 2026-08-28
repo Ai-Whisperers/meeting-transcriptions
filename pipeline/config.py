@@ -22,7 +22,7 @@ PROMPTS_DIR = Path(os.environ.get("MT_PROMPTS", REPO_ROOT / "prompts"))
 SCHEMAS_DIR = Path(os.environ.get("MT_SCHEMAS", REPO_ROOT / "schema"))
 
 # Stage 1: Drive folder ID. Override at runtime via --drive-folder or env MT_DRIVE_FOLDER.
-DRIVE_FOLDER_ID = os.environ.get("MT_DRIVE_FOLDER", "1d6vwcPeR8jv8Sq7JOGM1IZDXYkT83Z7z")
+DRIVE_FOLDER_ID = os.environ.get("MT_DRIVE_FOLDER", "1iuz-q9fPxup4MZjuRLSs3U3iw6FmgIF2")
 
 # Stage 2: WhisperX model choice.
 #   medium = 769M, ~2x realtime, very good Spanish (validated 2026-08-26 in voice-notes-transcription skill)
