@@ -1,0 +1,71 @@
+{
+  "id": "2026-02-18_untitled",
+  "date": "2026-02-18",
+  "title": "Untitled",
+  "duration_sec": 274.0,
+  "language": "en",
+  "source": {
+    "kind": "local-upload",
+    "local_path": "/tmp/mt_public_drive_staging/02-18-2026 10.43.m4a",
+    "original_filename": "02-18-2026 10.43.m4a",
+    "sha256": "564afa9630b4d0ea3b16926adbce2a455a4402a6abc4709b8a12406c39df2d38"
+  },
+  "transcript": {
+    "json": "transcript.json",
+    "txt": "transcript.txt",
+    "vtt": "transcript.vtt"
+  },
+  "extraction": {
+    "engine": "openai/zai-glm-4-flash",
+    "extracted_at": "2026-08-28T19:18:38.597009+00:00",
+    "paths": {
+      "json": "extraction.json"
+    },
+    "sections_present": [
+      "weekly_tasks",
+      "monthly_okrs",
+      "topics",
+      "decisions",
+      "ideas",
+      "features",
+      "projects",
+      "clients",
+      "quotes"
+    ]
+  },
+  "links": {
+    "previous_meeting_id": null,
+    "next_meeting_id": "2026-08-21_untitled",
+    "carried_topics": [],
+    "new_topics": [
+      "Energy21 proposal",
+      "VEPEGE collaboration",
+      "AI whispers N8N workflow",
+      "Ticket analyzer system",
+      "Automation of tasks",
+      "Hiring external talent for AI whispers",
+      "Workflows and setup for Energy21",
+      "Courses and explanations for AI whispers",
+      "Marketing idea for AI whispers",
+      "AI native and efficient work",
+      "Proof of AI whispers effectiveness"
+    ],
+    "topic_history": {}
+  },
+  "meta": {
+    "created_at": "2026-08-28T18:57:23.299843+00:00",
+    "updated_at": "2026-08-28T19:18:46.426759+00:00",
+    "schema_version": "1.0.0",
+    "pipeline_run_id": null
+  },
+  "speakers": [
+    {
+      "label": "SPEAKER_UNKNOWN",
+      "inferred_name": null,
+      "talk_pct": 100.0,
+      "turns": 19,
+      "word_tokens": 522,
+      "confidence": 0.0
+    }
+  ]
+}

@@ -1,0 +1,341 @@
+{
+  "daily_tasks": [],
+  "weekly_tasks": [
+    {
+      "task": "Create proposal for Energy21",
+      "owner": "SPEAKER_UNKNOWN",
+      "week": "2023-W36",
+      "topic": "Energy21 proposal",
+      "blocks": []
+    }
+  ],
+  "monthly_okrs": [
+    {
+      "objective": "Create N8N workflow for Energy21",
+      "kr": "Develop ticket analyzer to reduce manual fixes by 50%",
+      "owner": "SPEAKER_UNKNOWN",
+      "target_date": "2023-04-30",
+      "metric": "percentage"
+    },
+    {
+      "objective": "Prepare proposal for AI whisper implementation",
+      "kr": "Finalize proposal with cost and timeline by 2023-04-25",
+      "owner": "SPEAKER_UNKNOWN",
+      "target_date": "2023-04-25",
+      "metric": "binary"
+    },
+    {
+      "objective": "Position company as AI native and efficient",
+      "kr": "Deliver marketing materials by 2023-04-28",
+      "owner": "SPEAKER_UNKNOWN",
+      "target_date": "2023-04-28",
+      "metric": "binary"
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Create N8N workflow for ticket analyzer",
+      "made_by": "SPEAKER_UNKNOWN",
+      "timestamp": "00:27",
+      "rationale": "To reduce time spent on fixing issues and automate the process"
+    },
+    {
+      "decision": "Hire external talent, AI whispers, to set up workflows for Energy21",
+      "made_by": "SPEAKER_UNKNOWN",
+      "timestamp": "02:06",
+      "rationale": "To implement automation and learn tools for Energy21"
+    },
+    {
+      "decision": "Develop courses or explanations for workflow usage",
+      "made_by": "SPEAKER_UNKNOWN",
+      "timestamp": "02:35",
+      "rationale": "To assist Energy21 in understanding and implementing the workflows"
+    },
+    {
+      "decision": "Convince Energy21 of the value of the proposed services",
+      "made_by": "SPEAKER_UNKNOWN",
+      "timestamp": "03:09",
+      "rationale": "To ensure a positive return on investment for the services provided"
+    },
+    {
+      "decision": "Position the company as AI native and efficient",
+      "made_by": "SPEAKER_UNKNOWN",
+      "timestamp": "04:00",
+      "rationale": "To demonstrate the company's expertise and the benefits of using AI"
+    }
+  ],
+  "ideas": [
+    {
+      "idea": "Create a ticket analyzer AI to handle client inputs and bugs, reducing manual work and time spent on fixes.",
+      "category": "process",
+      "raised_by": null,
+      "timestamp": "00:27",
+      "novelty": "moderate",
+      "estimated_impact": "high",
+      "confidence": 0.9,
+      "source_quote": "the whole idea is that they have like an a place where they get the input from the clients, like if something is failing, if something isn't working, and some of the times it's just answering to the people, but other times there's actual bugs in the program or whatever. so the idea is to have a workflow where an AI can answer and fix and iterate and fix basically all of the things it can fix already and only the things that it cannot fix it it goes to like an actual person to look over so instead of having one person manually look over all of the comments and all of the inputs and all of the emails or whatever you have an AI looking at all of that and you're wasting less time in that."
+    },
+    {
+      "idea": "Develop a ticketing system that automatically creates stories and tickets with all necessary information for fixes.",
+      "category": "process",
+      "raised_by": null,
+      "timestamp": "01:45",
+      "novelty": "moderate",
+      "estimated_impact": "high",
+      "confidence": 0.9,
+      "source_quote": "Now the other thing is the ticketing system itself to have based on the things that it couldn't fix or I mean, yeah, to create the stories and tickets with all the information needed to fix those things."
+    },
+    {
+      "idea": "Hire external talent, AI whispers, to set up automation for clients like Energy21.",
+      "category": "process",
+      "raised_by": null,
+      "timestamp": "02:06",
+      "novelty": "moderate",
+      "estimated_impact": "high",
+      "confidence": 0.9,
+      "source_quote": "And the idea is to basically because Energy21 is not using their resources or their employees to do these things, to learn these tools and do this automation, basically hire external talent, AI whispers, to set this up for them."
+    },
+    {
+      "idea": "Create workflows and set them up for clients to start implementing automation.",
+      "category": "process",
+      "raised_by": null,
+      "timestamp": "02:35",
+      "novelty": "moderate",
+      "estimated_impact": "high",
+      "confidence": 0.9,
+      "source_quote": "and so the idea is to create the workflows and set them up so they can start implementing that probably additionally they're going to need like courses or like I don't know explanation how everything works but I need to make a proposal for this like how are we going to make things how long is it going to take how much are we expecting how how much do we want to be paid for for this job and basically I want a proposal that convinces them why it's worth paying what we're going to ask which I have to calculate but the idea is to put us in positive numbers and yeah"
+    },
+    {
+      "idea": "Position the company as AI native and efficient, showcasing the benefits of using AI to other companies.",
+      "category": "marketing",
+      "raised_by": null,
+      "timestamp": "04:00",
+      "novelty": "moderate",
+      "estimated_impact": "high",
+      "confidence": 0.9,
+      "source_quote": "And basically, the idea is we are setting our company to be AI native and work and be efficient. And basically, all of the things that we want to offer to do for other companies that we are already using those things that we're already implementing that We are the proof that those things work and why they should be doing like that, why they should be using AI to not fall behind other competencies."
+    }
+  ],
+  "features": [
+    {
+      "feature": "AI-driven ticket analyzer for client input processing",
+      "product": "unknown",
+      "status": "planned",
+      "requested_by": "Energy21",
+      "raised_at": "00:27",
+      "complexity": "medium",
+      "blocks": [],
+      "confidence": 0.7,
+      "source_quote": "basically what they want is a ticket analyzer they want to stop wasting so much time fixing stuff and the whole idea is that they have like an a place where they get the input from the clients, like if something is failing, if something isn't working, and some of the times it's just answering to the people, but other times there's actual bugs in the program or whatever."
+    },
+    {
+      "feature": "Automated ticket creation with necessary information",
+      "product": "unknown",
+      "status": "planned",
+      "requested_by": "Energy21",
+      "raised_at": "01:45",
+      "complexity": "medium",
+      "blocks": [],
+      "confidence": 0.7,
+      "source_quote": "to create the stories and tickets with all the information needed to fix those things."
+    },
+    {
+      "feature": "Workflows and setup for AI whispers for Energy21",
+      "product": "unknown",
+      "status": "planned",
+      "requested_by": "Energy21",
+      "raised_at": "02:35",
+      "complexity": "large",
+      "blocks": [],
+      "confidence": 0.7,
+      "source_quote": "basically hire external talent, AI whispers, to set this up for them."
+    },
+    {
+      "feature": "Courses or explanations for AI whispers implementation",
+      "product": "unknown",
+      "status": "planned",
+      "requested_by": "Energy21",
+      "raised_at": "02:45",
+      "complexity": "small",
+      "blocks": [],
+      "confidence": 0.7,
+      "source_quote": "they're going to need like courses or like I don't know explanation how everything works but I need to make a proposal for this like how are we going to make things how long is it going to take how much are we expecting how how much do we want to be paid for for this job and"
+    }
+  ],
+  "projects": [
+    {
+      "name": "energy21-vepege-n8n-workflow",
+      "status": "proposed",
+      "owner": null,
+      "description": "Create an N8N workflow for Energy21 and VEPEGE to analyze tickets and automate fixes.",
+      "next_milestone": null,
+      "blockers": [],
+      "depends_on": [],
+      "raised_at": "00:00",
+      "confidence": 0.7,
+      "source_quote": "And I need to make a proposal for a company in the Netherlands that's called Energy21. And I need to make a proposal for a company in the Netherlands that's called Energy21. That works with a company in Paraguay that's called VEPEGE. VEPEGE, waste poll group. Basically, what they need is for us AI whispers to create an N8N workflow but actually it's not just one N8N workflow is basically what they want is a ticket analyzer they want to stop wasting so much time fixing stuff and the whole idea is that they have like an a place where they get the input from the clients, like if something is failing, if something isn't working, and some of the times it's just answering to the people, but other times there's actual bugs in the program or whatever. so the idea is to have a workflow where an AI can answer and fix and iterate and fix basically all of the things it can fix already and only the things that it cannot fix it it goes to like an actual person to look over so instead of having one person manually look over all of the comments and all of the inputs and all of the emails or whatever you have an AI looking at all of that and you're wasting less time in that. Now the other thing is the ticketing system itself to have based on the things that it couldn't fix or I mean, yeah, to create the stories and tickets with all the information needed to fix those things. And the idea is to basically because Energy21 is not using their resources or their employees to do these things, to learn these tools and do this automation, basically hire external talent, AI whispers, to set this up for them. and so the idea is to create the workflows and set them up so they can start implementing that probably additionally they're going to need like courses or like I don't know explanation how everything works but I need to make a proposal for this like how are we going to make things how long is it going to take how much are we expecting how how much do we want to be paid for for this job and basically I want a proposal that convinces them why it's worth paying what we're going to ask which I have to calculate but the idea is to put us in positive numbers and yeah like they were like my boss or like my main investor and my co-founder were talking they have this idea to It's actually, yeah, a marketing idea in which because we are AI whispers, we are magicians of the AI. Basically, the idea is we are setting our company to be AI native and work and be efficient. And basically, all of the things that we want to offer to do for other companies that we are already using those things that we're already implementing that We are the proof that those things work and why they should be doing like that, why they should be using AI to not fall behind other competencies."
+    }
+  ],
+  "clients": [
+    {
+      "insight": "Energy21 requires an AI-driven ticket analyzer to reduce time spent on manual fixes and improve efficiency",
+      "category": "requirement",
+      "client": "Energy21",
+      "severity": "medium",
+      "raised_at": "00:27",
+      "follow_up_needed": true,
+      "follow_up_owner": "SPEAKER_UNKNOWN",
+      "confidence": 0.85,
+      "source_quote": "what they need is for us AI whispers to create an N8N workflow but actually it's not just one N8N workflow is basically what they want is a ticket analyzer they want to stop wasting so much time fixing stuff"
+    },
+    {
+      "insight": "VEPEGE, a waste poll group, is working with Energy21 and needs an AI-driven ticket analyzer to streamline their operations",
+      "category": "requirement",
+      "client": "VEPEGE",
+      "severity": "medium",
+      "raised_at": "00:16",
+      "follow_up_needed": true,
+      "follow_up_owner": "SPEAKER_UNKNOWN",
+      "confidence": 0.85,
+      "source_quote": "And I need to make a proposal for a company in the Netherlands that's called Energy21. That works with a company in Paraguay that's called VEPEGE."
+    },
+    {
+      "insight": "Energy21 plans to hire external talent, AI whispers, to set up the AI-driven ticket analyzer",
+      "category": "requirement",
+      "client": "Energy21",
+      "severity": "medium",
+      "raised_at": "02:06",
+      "follow_up_needed": true,
+      "follow_up_owner": "SPEAKER_UNKNOWN",
+      "confidence": 0.85,
+      "source_quote": "And the idea is to basically because Energy21 is not using their resources or their employees to do these things, to learn these tools and do this automation, basically hire external talent, AI whispers, to set this up for them."
+    },
+    {
+      "insight": "Energy21 needs a proposal outlining the benefits and cost of implementing an AI-driven ticket analyzer",
+      "category": "requirement",
+      "client": "Energy21",
+      "severity": "medium",
+      "raised_at": "03:09",
+      "follow_up_needed": true,
+      "follow_up_owner": "SPEAKER_UNKNOWN",
+      "confidence": 0.85,
+      "source_quote": "basically I want a proposal that convinces them why it's worth paying what we're going to ask which I have to calculate"
+    },
+    {
+      "insight": "Energy21 aims to become an AI-native company and is looking for solutions to stay competitive",
+      "category": "requirement",
+      "client": "Energy21",
+      "severity": "medium",
+      "raised_at": "04:00",
+      "follow_up_needed": true,
+      "follow_up_owner": "SPEAKER_UNKNOWN",
+      "confidence": 0.85,
+      "source_quote": "And basically, the idea is we are setting our company to be AI native and work and be efficient."
+    }
+  ],
+  "quotes": [
+    {
+      "quote": "basically hire external talent, AI whispers, to set this up for them.",
+      "speaker": "SPEAKER_UNKNOWN",
+      "type": "strategic",
+      "timestamp": "02:06",
+      "context": "Discussing the strategy for setting up AI whispers for Energy21.",
+      "confidence": 0.8
+    },
+    {
+      "quote": "basically I want a proposal that convinces them why it's worth paying what we're going to ask which I have to calculate but the idea is to put us in positive numbers and yeah",
+      "speaker": "SPEAKER_UNKNOWN",
+      "type": "commitment",
+      "timestamp": "03:09",
+      "context": "Describing the commitment to create a proposal that justifies the cost to the client.",
+      "confidence": 0.9
+    },
+    {
+      "quote": "And basically, the idea is we are setting our company to be AI native and work and be efficient.",
+      "speaker": "SPEAKER_UNKNOWN",
+      "type": "strategic",
+      "timestamp": "04:00",
+      "context": "Outlining the strategic direction of the company to be AI native.",
+      "confidence": 0.9
+    },
+    {
+      "quote": "We are the proof that those things work and why they should be doing like that, why they should be using AI to not fall behind other competencies.",
+      "speaker": "SPEAKER_UNKNOWN",
+      "type": "opinion",
+      "timestamp": "04:18",
+      "context": "Expressing a strong opinion on the benefits of using AI and the competitive advantage it provides.",
+      "confidence": 0.9
+    }
+  ],
+  "topics": [
+    {
+      "name": "Energy21 proposal",
+      "status": "open",
+      "first_mentioned_at": "00:04:00",
+      "related_to": []
+    },
+    {
+      "name": "VEPEGE collaboration",
+      "status": "open",
+      "first_mentioned_at": "00:16:00",
+      "related_to": []
+    },
+    {
+      "name": "AI whispers N8N workflow",
+      "status": "open",
+      "first_mentioned_at": "00:27:00",
+      "related_to": []
+    },
+    {
+      "name": "Ticket analyzer system",
+      "status": "open",
+      "first_mentioned_at": "00:56:00",
+      "related_to": []
+    },
+    {
+      "name": "Automation of tasks",
+      "status": "open",
+      "first_mentioned_at": "01:12:00",
+      "related_to": []
+    },
+    {
+      "name": "Hiring external talent for AI whispers",
+      "status": "open",
+      "first_mentioned_at": "02:06:00",
+      "related_to": []
+    },
+    {
+      "name": "Workflows and setup for Energy21",
+      "status": "open",
+      "first_mentioned_at": "02:35:00",
+      "related_to": []
+    },
+    {
+      "name": "Courses and explanations for AI whispers",
+      "status": "open",
+      "first_mentioned_at": "02:45:00",
+      "related_to": []
+    },
+    {
+      "name": "Marketing idea for AI whispers",
+      "status": "open",
+      "first_mentioned_at": "03:36:00",
+      "related_to": []
+    },
+    {
+      "name": "AI native and efficient work",
+      "status": "open",
+      "first_mentioned_at": "04:00:00",
+      "related_to": []
+    },
+    {
+      "name": "Proof of AI whispers effectiveness",
+      "status": "open",
+      "first_mentioned_at": "04:18:00",
+      "related_to": []
+    }
+  ],
+  "extraction_engine": "openai/zai-glm-4-flash",
+  "extracted_at": "2026-08-28T19:18:38.597009+00:00",
+  "schema_version": "1.0.0"
+}
