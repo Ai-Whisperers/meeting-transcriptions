@@ -4,7 +4,7 @@
   "title": "LLM Extraction Output (intermediate)",
   "description": "What the LiteLLM extractor returns before merging into meeting.json. Validated against this schema; rejected if invalid.",
   "type": "object",
-  "required": ["daily_tasks", "weekly_tasks", "monthly_okrs", "topics", "decisions"],
+  "required": ["daily_tasks", "weekly_tasks", "monthly_okrs", "topics", "decisions", "ideas", "features", "projects", "clients", "quotes"],
   "properties": {
     "daily_tasks": {
       "type": "array",
@@ -18,7 +18,9 @@
           "deadline": { "type": "string", "format": "date" },
           "topic": { "type": "string" },
           "verbatim": { "type": "string", "description": "Exact quote from transcript, ≤ 200 chars" },
-          "timestamp": { "type": "string", "description": "HH:MM:SS of when the task was stated" }
+          "timestamp": { "type": "string", "description": "HH:MM:SS of when the task was stated" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "source_quote": { "type": "string" }
         }
       }
     },
@@ -33,7 +35,9 @@
           "owner": { "type": "string" },
           "week": { "type": "string", "pattern": "^[0-9]{4}-W[0-9]{2}$" },
           "topic": { "type": "string" },
-          "blocks": { "type": "array", "items": { "type": "string" } }
+          "blocks": { "type": "array", "items": { "type": "string" } },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "source_quote": { "type": "string" }
         }
       }
     },
@@ -48,7 +52,9 @@
           "kr": { "type": "string", "minLength": 5 },
           "owner": { "type": "string" },
           "target_date": { "type": "string", "format": "date" },
-          "metric": { "type": "string" }
+          "metric": { "type": "string" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "source_quote": { "type": "string" }
         }
       }
     },
@@ -62,7 +68,8 @@
           "name": { "type": "string", "minLength": 3 },
           "status": { "type": "string", "enum": ["open", "in-progress", "blocked", "resolved", "deferred"] },
           "first_mentioned_at": { "type": "string", "description": "HH:MM:SS" },
-          "related_to": { "type": "array", "items": { "type": "string" } }
+          "related_to": { "type": "array", "items": { "type": "string" } },
+          "summary": { "type": "string" }
         }
       }
     },
@@ -76,7 +83,100 @@
           "decision": { "type": "string", "minLength": 5 },
           "made_by": { "type": "string" },
           "timestamp": { "type": "string", "description": "HH:MM:SS" },
-          "rationale": { "type": "string" }
+          "rationale": { "type": "string" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "ideas": {
+      "type": "array",
+      "description": "New concepts/suggestions/brainstorms raised in this meeting. Seeds for future work, not commitments.",
+      "items": {
+        "type": "object",
+        "required": ["idea", "category"],
+        "properties": {
+          "idea": { "type": "string", "minLength": 5 },
+          "category": { "type": "string", "enum": ["product", "business-model", "marketing", "partnership", "content", "process", "other"] },
+          "raised_by": { "type": "string" },
+          "timestamp": { "type": "string" },
+          "novelty": { "type": "string", "enum": ["incremental", "moderate", "breakthrough"] },
+          "estimated_impact": { "type": "string", "enum": ["low", "medium", "high"] },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "source_quote": { "type": "string" }
+        }
+      }
+    },
+    "features": {
+      "type": "array",
+      "description": "Product capabilities being requested, discussed, or planned.",
+      "items": {
+        "type": "object",
+        "required": ["feature", "status"],
+        "properties": {
+          "feature": { "type": "string", "minLength": 5 },
+          "product": { "type": "string" },
+          "status": { "type": "string", "enum": ["requested", "discussed", "planned", "in-progress", "shipped"] },
+          "requested_by": { "type": "string" },
+          "raised_at": { "type": "string" },
+          "complexity": { "type": "string", "enum": ["trivial", "small", "medium", "large", "epic"] },
+          "blocks": { "type": "array", "items": { "type": "string" } },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "source_quote": { "type": "string" }
+        }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "description": "Project-level information: proposals, status updates, pivots, dependencies.",
+      "items": {
+        "type": "object",
+        "required": ["name", "status"],
+        "properties": {
+          "name": { "type": "string", "minLength": 2 },
+          "status": { "type": "string", "enum": ["proposed", "active", "blocked", "paused", "completed", "cancelled"] },
+          "owner": { "type": "string" },
+          "description": { "type": "string" },
+          "next_milestone": { "type": "string" },
+          "blockers": { "type": "array", "items": { "type": "string" } },
+          "depends_on": { "type": "array", "items": { "type": "string" } },
+          "raised_at": { "type": "string" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "source_quote": { "type": "string" }
+        }
+      }
+    },
+    "clients": {
+      "type": "array",
+      "description": "Client intelligence: pain points, requirements, feedback, objections, success stories, upsell, churn risk.",
+      "items": {
+        "type": "object",
+        "required": ["insight", "category"],
+        "properties": {
+          "insight": { "type": "string", "minLength": 5 },
+          "category": { "type": "string", "enum": ["pain-point", "requirement", "feedback", "objection", "success-story", "upsell", "churn-risk", "general"] },
+          "client": { "type": "string" },
+          "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+          "raised_at": { "type": "string" },
+          "follow_up_needed": { "type": "boolean" },
+          "follow_up_owner": { "type": "string" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "source_quote": { "type": "string" }
+        }
+      }
+    },
+    "quotes": {
+      "type": "array",
+      "description": "Verbatim memorable/committal/strategically important statements.",
+      "items": {
+        "type": "object",
+        "required": ["quote", "type"],
+        "properties": {
+          "quote": { "type": "string", "minLength": 10 },
+          "speaker": { "type": "string" },
+          "type": { "type": "string", "enum": ["commitment", "client-promise", "strategic", "opinion", "pivotal", "accountability"] },
+          "timestamp": { "type": "string" },
+          "context": { "type": "string" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
         }
       }
     }

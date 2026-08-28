@@ -279,8 +279,155 @@ def render_tasks_index(meetings: list[dict], kind: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _flat_items(meetings: list[dict], section: str) -> list[dict]:
+    """Flatten a section across all meetings. Each item gets meeting_id + date."""
+    out = []
+    for m in meetings:
+        for item in m["extraction"].get(section, []):
+            out.append({**item, "meeting_id": m["id"], "date": m["date"]})
+    return out
+
+
+def render_simple_index(title: str, section: str, primary_key: str,
+                        meetings: list[dict], columns: list[tuple[str, str, int]],
+                        sort_key: str = "date") -> str:
+    """Generic index renderer for the new sections (ideas, features, etc.).
+
+    title:    page title
+    section:  extraction.json key (e.g. 'ideas')
+    primary_key: field whose value is shown as bold (e.g. 'idea')
+    columns:  list of (header, json_key, max_chars) for table columns after the primary
+    sort_key: 'date' (newest first) or any field name
+    """
+    rows = _flat_items(meetings, section)
+    if sort_key == "date":
+        rows.sort(key=lambda r: r["date"], reverse=True)
+    else:
+        rows.sort(key=lambda r: r.get(sort_key, ""), reverse=True)
+
+    lines = [f"# {title}", "",
+             f"_Generated {datetime.now(timezone.utc).isoformat()}_", ""]
+    if not rows:
+        return "\n".join(lines) + f"\n_No {title.lower()} yet._\n"
+    lines.append(f"_Total: **{len(rows)}**._\n")
+
+    # Build table header
+    headers = ["Date", "Meeting"] + [primary_key.title()] + [h for h, _, _ in columns]
+    lines.append("| " + " | ".join(headers) + " |")
+    lines.append("|" + "|".join(["---"] * len(headers)) + "|")
+    for r in rows:
+        primary_text = str(r.get(primary_key, ""))[:120]
+        row = [r["date"], f"`{r['meeting_id']}`", f"**{primary_text}**"]
+        for _, key, maxc in columns:
+            val = str(r.get(key, ""))
+            if maxc:
+                val = val[:maxc]
+            row.append(val)
+        lines.append("| " + " | ".join(row) + " |")
+    return "\n".join(lines) + "\n"
+
+
+def render_ideas_index(meetings: list[dict]) -> str:
+    rows = _flat_items(meetings, "ideas")
+    lines = ["# Ideas Raised", "",
+             f"_Generated {datetime.now(timezone.utc).isoformat()}_", ""]
+    if not rows:
+        return "\n".join(lines) + "\n_No ideas yet._\n"
+    lines.append(f"_Total: **{len(rows)}**._\n")
+    # Group by category
+    by_cat: dict[str, list[dict]] = {}
+    for r in rows:
+        by_cat.setdefault(r.get("category", "other"), []).append(r)
+    for cat in sorted(by_cat.keys()):
+        lines.append(f"## {cat} ({len(by_cat[cat])})")
+        lines.append("")
+        for r in by_cat[cat]:
+            idea = r.get("idea", "")
+            by = r.get("raised_by") or "?"
+            nov = r.get("novelty", "")
+            imp = r.get("estimated_impact", "")
+            conf = r.get("confidence")
+            extras = []
+            if nov: extras.append(f"novelty={nov}")
+            if imp: extras.append(f"impact={imp}")
+            if conf is not None: extras.append(f"conf={conf:.1f}")
+            ex = f" ({', '.join(extras)})" if extras else ""
+            lines.append(f"* [{r['date']}] _{by}_: {idea}{ex}")
+        lines.append("")
+    return "\n".join(lines) + "\n"
+
+
+def render_features_index(meetings: list[dict]) -> str:
+    return render_simple_index(
+        "Features Discussed", "features", "feature", meetings,
+        columns=[("Status", "status", 12),
+                 ("Product", "product", 24),
+                 ("Requested by", "requested_by", 24),
+                 ("Complexity", "complexity", 10)],
+    )
+
+
+def render_projects_index(meetings: list[dict]) -> str:
+    return render_simple_index(
+        "Projects", "projects", "name", meetings,
+        columns=[("Status", "status", 12),
+                 ("Owner", "owner", 20),
+                 ("Description", "description", 80),
+                 ("Next milestone", "next_milestone", 60)],
+    )
+
+
+def render_clients_index(meetings: list[dict]) -> str:
+    rows = _flat_items(meetings, "clients")
+    sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    rows.sort(key=lambda r: (sev_order.get(r.get("severity", "medium"), 2), r["date"]), reverse=False)
+    lines = ["# Client Insights", "",
+             f"_Generated {datetime.now(timezone.utc).isoformat()}_", ""]
+    if not rows:
+        return "\n".join(lines) + "\n_No client insights yet._\n"
+    high = sum(1 for r in rows if r.get("severity") in ("high", "critical"))
+    lines.append(f"_Total: **{len(rows)}** ({high} high-severity)._\n")
+    lines.append("| Date | Client | Category | Severity | Insight |")
+    lines.append("|---|---|---|---|---|")
+    for r in rows:
+        cat = r.get("category", "?")
+        sev = r.get("severity", "")
+        fu = " ⚠️ follow-up" if r.get("follow_up_needed") else ""
+        insight = str(r.get("insight", ""))[:100]
+        client = r.get("client", "?")
+        lines.append(f"| {r['date']} | **{client}** | {cat} | {sev}{fu} | {insight} |")
+    return "\n".join(lines) + "\n"
+
+
+def render_quotes_index(meetings: list[dict]) -> str:
+    rows = _flat_items(meetings, "quotes")
+    type_order = {"commitment": 0, "client-promise": 1, "strategic": 2,
+                  "pivotal": 3, "accountability": 4, "opinion": 5}
+    rows.sort(key=lambda r: (type_order.get(r.get("type", "opinion"), 6), r["date"]))
+    lines = ["# Key Quotes", "",
+             f"_Generated {datetime.now(timezone.utc).isoformat()}_", ""]
+    if not rows:
+        return "\n".join(lines) + "\n_No quotes yet._\n"
+    lines.append(f"_Total: **{len(rows)}**._\n")
+    for r in rows:
+        speaker = r.get("speaker") or "?"
+        qtype = r.get("type", "?")
+        ts = r.get("timestamp", "")
+        context = r.get("context", "")
+        quote = str(r.get("quote", "")).replace("\n", " ")
+        line = f"> _{speaker} ({qtype}"
+        if ts: line += f" @ {ts}"
+        line += f"):_ \"{quote}\""
+        lines.append(line)
+        if context:
+            lines.append(f"> _(context: {context})_")
+        lines.append(f"> _(meeting: {r['meeting_id']}, {r['date']})_")
+        lines.append("")
+    return "\n".join(lines) + "\n"
+
+
 def write_indexes(meetings: list[dict]) -> dict[str, Path]:
-    """Write the 5 index files. Returns dict of name → path."""
+    """Write all index files. Returns dict of name → path."""
     config.INDEX.mkdir(parents=True, exist_ok=True)
     out = {}
     for name, content in (
@@ -290,6 +437,11 @@ def write_indexes(meetings: list[dict]) -> dict[str, Path]:
         ("okrs.md", render_okrs_index(meetings)),
         ("daily_tasks.md", render_tasks_index(meetings, "daily_tasks")),
         ("weekly_tasks.md", render_tasks_index(meetings, "weekly_tasks")),
+        ("ideas.md", render_ideas_index(meetings)),
+        ("features.md", render_features_index(meetings)),
+        ("projects.md", render_projects_index(meetings)),
+        ("clients.md", render_clients_index(meetings)),
+        ("quotes.md", render_quotes_index(meetings)),
     ):
         p = config.INDEX / name
         p.write_text(content)

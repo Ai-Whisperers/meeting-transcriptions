@@ -34,8 +34,10 @@ Self-hosted pipeline that takes meeting audios and produces a structured, search
                                  │
                   ┌──────────────▼───────────────┐
                   │  Stage 3: LiteLLM extraction │
-                  │  5 prompts: daily/weekly/    │
-                  │  OKR/topics/decisions        │
+                  │  10 prompts: daily/weekly/   │
+                  │  OKR/decisions/ideas/        │
+                  │  features/projects/clients/  │
+                  │  quotes/topics                │
                   └──────────────┬───────────────┘
                                  │
                                  ▼
@@ -46,6 +48,11 @@ Self-hosted pipeline that takes meeting audios and produces a structured, search
                   │  topic linking + index rollup│
                   └──────────────┬───────────────┘
                                  │
+                  ┌──────────────▼───────────────┐
+                  │  Stage 5: pragmatic summary  │
+                  │  human-readable Markdown     │
+                  └──────────────┬───────────────┘
+                                 │
                                  ▼
                   /opt/data/indexed/meetings/
                     topics.md
@@ -54,7 +61,25 @@ Self-hosted pipeline that takes meeting audios and produces a structured, search
                     okrs.md
                     daily_tasks.md
                     weekly_tasks.md
+                    ideas.md
+                    features.md
+                    projects.md
+                    clients.md
+                    quotes.md
+                    summaries/<meeting_id>.md
+                    pragmatic_index.md
 ```
+
+## Source of truth
+
+This pipeline implements **PROJECT 2: Meeting Recording Analysis System** from
+[`Ai-Whisperers/team-tasks/team-assignments/ivan-tasks.md`](https://github.com/Ai-Whisperers/team-tasks/blob/master/team-assignments/ivan-tasks.md)
+(Nov 2025 spec). The extraction taxonomy — ideas, features, projects, clients,
+quotes, tasks, decisions, OKRs, topics — matches Ivan's original checklist.
+
+The pragmatic-summary output format is modeled after
+[this hand-written example](examples/reference/pragmatic_summary_example.md)
+from `Ai-Whisperers/saved-transcriptions` (Aug 2025).
 
 ## Quickstart
 
@@ -67,11 +92,14 @@ python -m pipeline.01_ingest --file /path/to/2026-08-28_aiw-strategy.mp3
 # Transcribe + diarize
 python -m pipeline.02_transcribe --all
 
-# Extract
+# Extract (10 prompts)
 python -m pipeline.03_extract --all
 
 # Build indexes
 python -m pipeline.04_link
+
+# Generate pragmatic summaries
+python -m pipeline.05_pragmatic_summary --all
 
 # Or run everything end-to-end:
 bash run_all.sh
@@ -113,16 +141,22 @@ meeting-transcriptions/
 │   ├── extraction.schema.json      # LLM output validation
 │   └── meta.schema.json            # pipeline run metadata
 ├── prompts/
-│   ├── extract_daily_tasks.md      # one prompt per extraction kind
+│   ├── extract_daily_tasks.md      # 10 extraction prompt templates
 │   ├── extract_weekly_tasks.md
 │   ├── extract_monthly_okrs.md
 │   ├── extract_topics.md
-│   └── extract_decisions.md
+│   ├── extract_decisions.md
+│   ├── extract_ideas.md
+│   ├── extract_features.md
+│   ├── extract_projects.md
+│   ├── extract_clients.md
+│   └── extract_quotes.md
 ├── pipeline/
 │   ├── 01_ingest.py                # Drive watcher + local fallback
 │   ├── 02_transcribe.py            # WhisperX + pyannote
-│   ├── 03_extract.py               # LiteLLM extraction (5 prompts)
+│   ├── 03_extract.py               # LiteLLM extraction (10 prompts)
 │   ├── 04_link.py                  # cross-meeting linking + index rollup
+│   ├── 05_pragmatic_summary.py     # human-readable Markdown digest
 │   ├── run_all.py                  # end-to-end orchestrator
 │   ├── config.py                   # env-driven config
 │   └── lib/

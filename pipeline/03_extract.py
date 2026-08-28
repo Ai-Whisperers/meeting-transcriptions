@@ -4,12 +4,17 @@ Input:  MT_INBOX/<meeting_id>/transcript.json + meta.json
 Output: MT_INBOX/<meeting_id>/extraction.json   (matches schema/extraction.schema.json)
         updated meta.json with extraction section
 
-Engine: LiteLLM gateway. Five extractions per meeting, one per prompt template:
+Engine: LiteLLM gateway. Ten extractions per meeting, one per prompt template:
   - extract_daily_tasks.md
   - extract_weekly_tasks.md
   - extract_monthly_okrs.md
   - extract_topics.md       (with prior_meetings context for cross-linking)
   - extract_decisions.md
+  - extract_ideas.md
+  - extract_features.md
+  - extract_projects.md
+  - extract_clients.md
+  - extract_quotes.md
 
 The extractor is *deterministic* in structure but the LLM does the heavy lifting.
 We pass:
@@ -35,6 +40,28 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from pipeline import config  # noqa: E402
+
+# Extraction sections and their prompt files. Order matters: more critical sections first.
+# When a section is missing from the schema, it just stays as [].
+EXTRACTION_PROMPTS: list[tuple[str, str | None]] = [
+    ("extract_daily_tasks.md", None),
+    ("extract_weekly_tasks.md", None),
+    ("extract_monthly_okrs.md", None),
+    ("extract_decisions.md", None),
+    ("extract_ideas.md", None),
+    ("extract_features.md", None),
+    ("extract_projects.md", None),
+    ("extract_clients.md", None),
+    ("extract_quotes.md", None),
+    ("extract_topics.md", "topics"),  # last so it gets prior_meetings context
+]
+
+# Sections that get merged into the final extraction output
+EXPECTED_SECTIONS = (
+    "daily_tasks", "weekly_tasks", "monthly_okrs",
+    "topics", "decisions",
+    "ideas", "features", "projects", "clients", "quotes",
+)
 
 
 def load_prompt(name: str) -> str:
@@ -89,7 +116,6 @@ def call_litellm(prompt: str, max_retries: int = 2) -> dict:
             return json.loads(content)
         except (json.JSONDecodeError, KeyError) as e:
             last_err = e
-            # Try to extract JSON from prose fallback
             content_text = ""
             if resp is not None:
                 content_text = str(resp.get("choices", [{}])[0].get("message", {}).get("content", ""))
@@ -108,7 +134,7 @@ def call_litellm(prompt: str, max_retries: int = 2) -> dict:
 
 
 def extract_one(meeting_dir: Path, *, force: bool = False) -> dict:
-    """Run all 5 extractions for a single meeting. Returns the updated meta fields."""
+    """Run all extractions for a single meeting. Returns the updated meta fields."""
     meta_path = meeting_dir / "meta.json"
     meta = json.loads(meta_path.read_text())
     transcript_path = meeting_dir / "transcript.json"
@@ -126,38 +152,30 @@ def extract_one(meeting_dir: Path, *, force: bool = False) -> dict:
     # Build context for topics extraction — list prior meetings and their topics.
     prior_meetings_ctx = build_prior_meetings_context(meeting_dir)
 
-    # Each prompt produces a partial extraction. We collect them all and merge.
-    prompts = [
-        ("extract_daily_tasks.md", None),
-        ("extract_weekly_tasks.md", None),
-        ("extract_monthly_okrs.md", None),
-        ("extract_topics.md", prior_meetings_ctx),
-        ("extract_decisions.md", None),
-    ]
-
     extraction: dict[str, Any] = {}
-    for prompt_file, ctx in prompts:
+    for prompt_file, ctx_marker in EXTRACTION_PROMPTS:
         template = load_prompt(prompt_file)
+        ctx = prior_meetings_ctx if ctx_marker == "topics" else None
         prompt = build_prompt(template, transcript_str, ctx)
         try:
             partial = call_litellm(prompt)
         except Exception as e:
             print(f"[error] {meeting_dir.name} {prompt_file}: {e}", file=sys.stderr)
-            # Save what we have so far + the error
             extraction.setdefault("_errors", []).append(f"{prompt_file}: {e}")
             continue
         # Each prompt returns a JSON object with one or more of the canonical keys.
         # Merge into extraction.
         for k, v in partial.items():
-            if k in {"daily_tasks", "weekly_tasks", "monthly_okrs", "topics", "decisions"}:
+            if k in EXPECTED_SECTIONS:
                 extraction[k] = v
 
     # Fill any missing keys with empty lists
-    for k in ("daily_tasks", "weekly_tasks", "monthly_okrs", "topics", "decisions"):
+    for k in EXPECTED_SECTIONS:
         extraction.setdefault(k, [])
 
     extraction["extraction_engine"] = config.LITELLM_MODEL
     extraction["extracted_at"] = datetime.now(timezone.utc).isoformat()
+    extraction["schema_version"] = config.SCHEMA_VERSION
 
     extraction_path.write_text(json.dumps(extraction, indent=2, ensure_ascii=False))
 
@@ -166,16 +184,14 @@ def extract_one(meeting_dir: Path, *, force: bool = False) -> dict:
         "engine": config.LITELLM_MODEL,
         "extracted_at": extraction["extracted_at"],
         "paths": {"json": "extraction.json"},
+        "sections_present": [k for k in EXPECTED_SECTIONS if extraction.get(k)],
     }
     meta["meta"]["updated_at"] = datetime.now(timezone.utc).isoformat()
     meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False))
+    counts = {k: len(extraction.get(k, [])) for k in EXPECTED_SECTIONS}
     print(
         f"[done] {meeting_dir.name}: "
-        f"{len(extraction['daily_tasks'])} daily, "
-        f"{len(extraction['weekly_tasks'])} weekly, "
-        f"{len(extraction['monthly_okrs'])} OKRs, "
-        f"{len(extraction['topics'])} topics, "
-        f"{len(extraction['decisions'])} decisions",
+        + ", ".join(f"{k}={counts[k]}" for k in EXPECTED_SECTIONS),
         file=sys.stderr,
     )
     return extraction
@@ -203,13 +219,14 @@ def build_prior_meetings_context(current_meeting_dir: Path) -> dict:
             "id": mdir.name,
             "topics": [t.get("name") for t in ext.get("topics", []) if t.get("name")],
             "decisions": [d.get("decision") for d in ext.get("decisions", [])][:5],
+            "projects": [p.get("name") for p in ext.get("projects", []) if p.get("name")][:5],
         }
         )
     return {"prior_meetings": prior}
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="Stage 3: LLM extraction of daily/weekly/OKR/topics/decisions.")
+    p = argparse.ArgumentParser(description="Stage 3: LLM extraction of structured fields from transcripts.")
     p.add_argument("--meeting", help="Single meeting id.")
     p.add_argument("--all", action="store_true")
     p.add_argument("--force", action="store_true")

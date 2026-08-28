@@ -34,6 +34,7 @@ stage1 = importlib.import_module("pipeline.01_ingest")
 stage2 = importlib.import_module("pipeline.02_transcribe")
 stage3 = importlib.import_module("pipeline.03_extract")
 stage4 = importlib.import_module("pipeline.04_link")
+stage5 = importlib.import_module("pipeline.05_pragmatic_summary")
 
 
 def run_one(meeting_dir: Path, *, force: bool = False) -> dict:
@@ -88,6 +89,18 @@ def main(argv: list[str] | None = None) -> int:
     stage4.update_links_for_meetings(meetings)
     out = stage4.write_indexes(meetings)
     print(f"[run_all] wrote {len(out)} indexes to {config.INDEX}", file=sys.stderr)
+
+    # Also rebuild pragmatic summaries (stage 5 — user-facing Markdown digest)
+    summaries = []
+    for mdir in sorted(config.INBOX.iterdir()):
+        if not mdir.is_dir() or not (mdir / "extraction.json").exists():
+            continue
+        s = stage5.summarize_one(mdir, force=args.force)
+        if s:
+            summaries.append(s)
+    if summaries:
+        stage5.write_index(summaries)
+        print(f"[run_all] wrote {len(summaries)} pragmatic summaries", file=sys.stderr)
     return 0
 
 
