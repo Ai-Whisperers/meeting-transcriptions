@@ -1,0 +1,24 @@
+# Core ML — STT + diarization
+# whisperx 3.8+ is what we tested with; pinned for reproducibility
+whisperx>=3.8,<4
+# torch/torchaudio are pulled in by whisperx; we pin to the cu128 wheels that
+# matched the sandbox install. On other systems uv will pick compatible wheels.
+torch>=2.8
+torchaudio>=2.8
+
+# Speaker diarization (pyannote.audio 4.0+ has a new API; pin >=3.1 for stability)
+# If upgrading: also review pipeline/02_transcribe.py for API changes.
+pyannote.audio>=3.1,<5
+
+# LLM extraction via LiteLLM
+litellm>=1.98
+
+# Validation
+jsonschema>=4.0
+
+# Env loading
+python-dotenv>=1.0
+
+# Optional but recommended:
+# - requests for non-llm HTTP calls
+# - ffprobe (system binary, not pip) for audio duration detection

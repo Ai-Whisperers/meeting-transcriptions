@@ -11,7 +11,7 @@ Paths assume the standard AIW layout under /opt/data. Override via env vars:
 import os
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 INBOX = Path(os.environ.get("MT_INBOX", "/opt/data/inbox/meetings"))
 PRODUCED = Path(os.environ.get("MT_PRODUCED", "/opt/data/produced/meetings"))

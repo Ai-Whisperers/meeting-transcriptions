@@ -86,13 +86,19 @@ from `Ai-Whisperers/saved-transcriptions` (Aug 2025).
 ### 1. Local-only (no Drive) — fastest path to first result
 
 ```bash
+# First-time setup (one-time per machine):
+uv venv --python 3.11 .venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+cp .env.example .env  # edit with your API keys
+
 # Drop a meeting audio into any directory, then:
 python -m pipeline.01_ingest --file /path/to/2026-08-28_aiw-strategy.mp3
 
-# Transcribe + diarize
+# Transcribe + diarize (requires HF_TOKEN — see .env.example)
 python -m pipeline.02_transcribe --all
 
-# Extract (10 prompts)
+# Extract (10 prompts via LiteLLM — requires MT_LITELLM_* in .env)
 python -m pipeline.03_extract --all
 
 # Build indexes
@@ -101,7 +107,7 @@ python -m pipeline.04_link
 # Generate pragmatic summaries
 python -m pipeline.05_pragmatic_summary --all
 
-# Or run everything end-to-end:
+# Or run everything end-to-end (auto-activates .venv if present):
 bash run_all.sh
 ```
 
